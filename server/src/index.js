@@ -23,9 +23,10 @@ function isUuid(value) {
   return uuidRegex.test(value);
 }
 
-// Endpoint de Registro de Jugador (Corregido)
+// index.js (endpoint de registro MODIFICADO)
 app.post('/api/players/register', async (req, res) => {
-  const { owner_key, display_name } = req.body;
+  // Ahora también esperamos 'language'
+  const { owner_key, display_name, language } = req.body;
 
   if (!owner_key || !display_name) {
     return res.status(400).json({ error: 'owner_key and display_name are required' });
@@ -35,17 +36,19 @@ app.post('/api/players/register', async (req, res) => {
     return res.status(400).json({ error: 'owner_key must be a valid UUID' });
   }
 
+  // Si el idioma no viene, lo ponemos en inglés por defecto
+  const lang = (language === 'es') ? 'es' : 'en';
+
   try {
     const result = await pool.query(
-      // Se añade '::uuid' para asegurar la conversión de tipo correcta.
-      'INSERT INTO players (owner_key, display_name) VALUES ($1::uuid, $2) RETURNING id',
-      [owner_key, display_name]
+      // Actualizamos la consulta para incluir el idioma
+      'INSERT INTO players (owner_key, display_name, language) VALUES ($1::uuid, $2, $3) RETURNING id',
+      [owner_key, display_name, lang]
     );
-    console.log(`Player registered: ${display_name} (${owner_key})`);
-    res.status(201).json({ message: 'Player registered successfully', playerId: result.rows[0].id });
+    console.log(`Player registered: ${display_name} (${owner_key}) in language: ${lang}`);
+    res.status(201).json({ message: 'Player registered successfully' });
   } catch (error) {
     if (error.code === '23505') {
-      console.log(`Registration failed: Player already exists (${display_name})`);
       return res.status(409).json({ error: 'Player already registered' });
     }
     console.error('Error during registration:', error);
