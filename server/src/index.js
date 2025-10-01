@@ -13,12 +13,23 @@ const pool = new Pool({
   }
 });
 
+// Helper: validar UUID v4 (acepta tanto mayúsculas como minúsculas)
+function isUuid(value) {
+  if (typeof value !== 'string') return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(value);
+}
+
 // Endpoint de Registro de Jugador (Corregido)
 app.post('/api/players/register', async (req, res) => {
   const { owner_key, display_name } = req.body;
 
   if (!owner_key || !display_name) {
     return res.status(400).json({ error: 'owner_key and display_name are required' });
+  }
+
+  if (!isUuid(owner_key)) {
+    return res.status(400).json({ error: 'owner_key must be a valid UUID' });
   }
 
   try {
@@ -43,6 +54,10 @@ app.post('/api/players/register', async (req, res) => {
 app.get('/api/players/profile/:owner_key', async (req, res) => {
     const { owner_key } = req.params;
 
+    if (!isUuid(owner_key)) {
+      return res.status(400).json({ error: 'owner_key must be a valid UUID' });
+    }
+
     try {
         const result = await pool.query(
             // Se añade '::uuid' para asegurar la conversión de tipo correcta.
@@ -59,6 +74,11 @@ app.get('/api/players/profile/:owner_key', async (req, res) => {
         console.error('Error fetching profile:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
+});
+
+// Healthcheck
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
 });
 
 const port = process.env.PORT || 3000;
