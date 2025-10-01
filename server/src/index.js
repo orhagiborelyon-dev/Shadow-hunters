@@ -13,6 +13,9 @@ const pool = new Pool({
   }
 });
 
+// AÑADE ESTA LÍNEA PARA VERIFICAR
+console.log(`Database URL Status: ${process.env.DATABASE_URL ? 'Loaded' : 'NOT FOUND'}`);
+
 // Helper: validar UUID v4 (acepta tanto mayúsculas como minúsculas)
 function isUuid(value) {
   if (typeof value !== 'string') return false;
