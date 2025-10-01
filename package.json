@@ -1,0 +1,13 @@
+{
+  "name": "shadowhunters-root",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "postinstall": "cd server && npm install",
+    "start": "cd server && npm start",
+    "build": "cd server && npm run build || true"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}

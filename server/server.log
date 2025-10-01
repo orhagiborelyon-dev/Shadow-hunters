@@ -1,0 +1,7 @@
+nohup: ignoring input
+
+> shadowhunters-api@1.0.0 start
+> node index.js
+
+Shadowhunters API server is running on 0.0.0.0:3000
+Conexión a la base de datos OK
