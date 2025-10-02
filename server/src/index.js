@@ -48,9 +48,17 @@ app.post('/api/players/register', async (req, res) => {
     console.log(`Player registered: ${display_name} (${owner_key}) in language: ${lang}`);
     res.status(201).json({ message: 'Player registered successfully' });
   } catch (error) {
-    if (error.code === '23505') {
-      return res.status(409).json({ error: 'Player already registered' });
+    // If the error is a unique constraint violation (player already exists)
+    if (error.code === '23505') { 
+      console.log(`Registration failed: Player already exists (${display_name})`);
+      // Return a 409 Conflict with a specific 'code' for the LSL script to parse.
+      return res.status(409).json({ 
+          error: 'Player already registered', 
+          code: 'ALREADY_REGISTERED' 
+      });
     }
+    
+    // For any other unexpected errors.
     console.error('Error during registration:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
