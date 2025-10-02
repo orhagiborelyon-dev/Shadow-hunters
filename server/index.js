@@ -133,6 +133,48 @@ app.post('/api/players/profile/update', async (req, res) => {
     }
 });
 
+// --- ADMIN ENDPOINT: SET PLAYER RACE ---
+// Este endpoint está protegido por una clave secreta.
+app.post('/api/admin/setrace', async (req, res) => {
+    // 1. Extraemos los datos y la clave de admin
+    const { admin_key, target_key, new_race } = req.body;
+    console.log(`Admin request to set race for ${target_key} to ${new_race}`);
+
+    // 2. Verificación de Seguridad
+    if (admin_key !== process.env.ADMIN_API_KEY) {
+        console.warn(`Unauthorized attempt to use setrace endpoint. Key provided: ${admin_key}`);
+        return res.status(403).json({ error: 'Forbidden: Invalid admin key.' });
+    }
+
+    // 3. Validación de Datos
+    if (!target_key || !new_race) {
+        return res.status(400).json({ error: 'target_key and new_race are required.' });
+    }
+
+    // (Opcional) Lista de razas válidas para evitar datos basura
+    const validRaces = ['Mundane', 'Nephilim', 'Vampire', 'Werewolf', 'Warlock', 'Faerie'];
+    if (!validRaces.includes(new_race)) {
+        return res.status(400).json({ error: `Invalid race: ${new_race}` });
+    }
+
+    // 4. Ejecución de la Actualización en la Base de Datos
+    try {
+        const result = await pool.query(
+            'UPDATE players SET race = $1 WHERE owner_key = $2::uuid RETURNING *',
+            [new_race, target_key]
+        );
+
+        if (result.rows.length > 0) {
+            console.log(`SUCCESS: Race for ${target_key} changed to ${new_race}`);
+            res.status(200).json(result.rows[0]);
+        } else {
+            res.status(404).json({ error: `Player with key ${target_key} not found.` });
+        }
+    } catch (error) {
+        console.error('CRITICAL ERROR during setrace:', error);
+        res.status(500).json({ error: 'Internal server error during setrace.' });
+    }
+});
 
 // --- 4. START SERVER ---
 const port = process.env.PORT || 3000;
