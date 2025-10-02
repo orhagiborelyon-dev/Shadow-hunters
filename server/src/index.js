@@ -1,3 +1,42 @@
+// Endpoint para actualizar perfil (PUT)
+app.put('/api/players/profile/:owner_key', async (req, res) => {
+  const { owner_key } = req.params;
+  const { health, stamina, xp, level } = req.body; // Campos que permitiremos actualizar
+
+  const fieldsToUpdate = [];
+  const values = [];
+  let queryIndex = 1;
+
+  if (health !== undefined) {
+    fieldsToUpdate.push(`health = $${queryIndex++}`);
+    values.push(health);
+  }
+  if (stamina !== undefined) {
+    fieldsToUpdate.push(`stamina = $${queryIndex++}`);
+    values.push(stamina);
+  }
+  // ... puedes añadir más campos aquí en el futuro ...
+
+  if (fieldsToUpdate.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  values.push(owner_key);
+  const updateQuery = `UPDATE players SET ${fieldsToUpdate.join(', ')} WHERE owner_key = $${queryIndex}::uuid RETURNING *`;
+
+  try {
+    const result = await pool.query(updateQuery, values);
+    if (result.rows.length > 0) {
+      console.log(`Profile updated for ${owner_key}`);
+      res.status(200).json(result.rows[0]); // Devolvemos el perfil actualizado
+    } else {
+      res.status(404).json({ error: 'Player not found to update' });
+    }
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 // index.js - Shadowhunters API Server (v1.1 - Corregido tipo UUID)
 
 const express = require('express');
