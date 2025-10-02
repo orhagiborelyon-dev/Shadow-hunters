@@ -4,8 +4,15 @@
 const express = require('express');
 const { Pool } = require('pg');
 
+
 const app = express();
 app.use(express.json());
+
+// Middleware to set the correct Content-Type header for all JSON responses
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  next();
+});
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
