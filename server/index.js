@@ -176,6 +176,65 @@ app.post('/api/admin/setrace', async (req, res) => {
     }
 });
 
+// --- GET PLAYER ABILITIES ENDPOINT ---
+// Obtiene todas las habilidades que un jugador ha aprendido.
+app.get('/api/players/abilities/:owner_key', async (req, res) => {
+    const { owner_key } = req.params;
+    console.log(`Fetching abilities for key: ${owner_key}`);
+
+    try {
+        // Hacemos una consulta compleja (JOIN) para obtener los detalles de las habilidades
+        const result = await pool.query(
+            `SELECT a.* FROM abilities a
+             JOIN player_abilities pa ON a.id = pa.ability_id
+             JOIN players p ON p.id = pa.player_id
+             WHERE p.owner_key = $1::uuid`,
+            [owner_key]
+        );
+        
+        console.log(`Found ${result.rows.length} abilities for ${owner_key}`);
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.status(200).json(result.rows); // Devuelve un array de objetos de habilidad
+    } catch (error) {
+        console.error('CRITICAL ERROR fetching abilities:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// --- ADMIN ENDPOINT: GRANT ABILITY ---
+// Permite a un admin enseñar una habilidad a un jugador.
+app.post('/api/admin/grant_ability', async (req, res) => {
+    const { admin_key, target_key, ability_code } = req.body;
+    console.log(`Admin request to grant ability '${ability_code}' to ${target_key}`);
+
+    if (admin_key !== process.env.ADMIN_API_KEY) {
+        return res.status(403).json({ error: 'Forbidden: Invalid admin key.' });
+    }
+    if (!target_key || !ability_code) {
+        return res.status(400).json({ error: 'target_key and ability_code are required.' });
+    }
+
+    try {
+        // Usamos una subconsulta para obtener los IDs correctos y hacer la inserción
+        await pool.query(
+            `INSERT INTO player_abilities (player_id, ability_id)
+             SELECT p.id, a.id FROM players p, abilities a
+             WHERE p.owner_key = $1::uuid AND a.ability_code = $2`,
+            [target_key, ability_code]
+        );
+        
+        console.log(`SUCCESS: Granted ability '${ability_code}' to ${target_key}`);
+        res.status(200).json({ message: `Ability ${ability_code} granted successfully.` });
+    } catch (error) {
+        // Si la habilidad ya fue aprendida, dará un error de unicidad
+        if (error.code === '23505') {
+            return res.status(409).json({ error: 'Player has already learned this ability.' });
+        }
+        console.error('CRITICAL ERROR granting ability:', error);
+        res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
 // --- 4. START SERVER ---
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
