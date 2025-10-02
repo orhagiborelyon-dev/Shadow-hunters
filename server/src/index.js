@@ -103,52 +103,48 @@ app.put('/api/test-put', (req, res) => {
 });
 // --- END DEBUGGING TEST ENDPOINT ---
 
-// Endpoint to Update a Player's Profile
-app.put('/api/players/profile/:owner_key', async (req, res) => {
-  const { owner_key } = req.params;
-  const { health, stamina, xp, level } = req.body;
+// Endpoint to Update a Player's Profile (Refactored to use POST)
+app.post('/api/players/profile/update', async (req, res) => {
+    // We now get the owner_key from the request body, not the URL params.
+    const { owner_key, health, stamina, xp, level } = req.body;
 
-  const fieldsToUpdate = [];
-  const values = [];
-  let queryIndex = 1;
-
-  if (health !== undefined) {
-    fieldsToUpdate.push(`health = $${queryIndex++}`);
-    values.push(health);
-  }
-  if (stamina !== undefined) {
-    fieldsToUpdate.push(`stamina = $${queryIndex++}`);
-    values.push(stamina);
-  }
-  if (xp !== undefined) {
-    fieldsToUpdate.push(`xp = $${queryIndex++}`);
-    values.push(xp);
-  }
-  if (level !== undefined) {
-    fieldsToUpdate.push(`level = $${queryIndex++}`);
-    values.push(level);
-  }
-
-  if (fieldsToUpdate.length === 0) {
-    return res.status(400).json({ error: 'No valid fields to update were provided.' });
-  }
-
-  values.push(owner_key);
-  const updateQuery = `UPDATE players SET ${fieldsToUpdate.join(', ')} WHERE owner_key = $${queryIndex}::uuid RETURNING *`;
-
-  try {
-    const result = await pool.query(updateQuery, values);
-
-    if (result.rows.length > 0) {
-      console.log(`Profile updated for ${owner_key}`);
-      res.status(200).json(result.rows[0]);
-    } else {
-      res.status(404).json({ error: `Player with key ${owner_key} not found to update.` });
+    if (!owner_key) {
+        return res.status(400).json({ error: 'owner_key is required in the request body.' });
     }
-  } catch (error) {
-    console.error('Error updating profile:', error);
-    res.status(500).json({ error: 'Internal server error during profile update.' });
-  }
+
+    const fieldsToUpdate = [];
+    const values = [];
+    let queryIndex = 1;
+
+    if (health !== undefined) {
+        fieldsToUpdate.push(`health = $${queryIndex++}`);
+        values.push(health);
+    }
+    if (stamina !== undefined) {
+        fieldsToUpdate.push(`stamina = $${queryIndex++}`);
+        values.push(stamina);
+    }
+    // ... add other fields as needed ...
+
+    if (fieldsToUpdate.length === 0) {
+        return res.status(400).json({ error: 'No valid fields to update were provided.' });
+    }
+
+    values.push(owner_key);
+    const updateQuery = `UPDATE players SET ${fieldsToUpdate.join(', ')} WHERE owner_key = $${queryIndex}::uuid RETURNING *`;
+
+    try {
+        const result = await pool.query(updateQuery, values);
+        if (result.rows.length > 0) {
+            console.log(`Profile updated for ${owner_key}`);
+            res.status(200).json(result.rows[0]);
+        } else {
+            res.status(404).json({ error: `Player with key ${owner_key} not found to update.` });
+        }
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        res.status(500).json({ error: 'Internal server error during profile update.' });
+    }
 });
 
 const port = process.env.PORT || 3000;
