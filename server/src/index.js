@@ -1,3 +1,10 @@
+// --- DEBUGGING TEST ENDPOINT ---
+app.put('/api/test-put', (req, res) => {
+  console.log("!!! DEBUG: /api/test-put endpoint was successfully reached !!!");
+  res.status(200).json({ message: 'PUT test successful!' });
+});
+// --- END DEBUGGING TEST ENDPOINT ---
+
 // Endpoint to Update a Player's Profile
 app.put('/api/players/profile/:owner_key', async (req, res) => {
     const { owner_key } = req.params;
