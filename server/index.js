@@ -235,6 +235,20 @@ app.post('/api/admin/grant_ability', async (req, res) => {
     }
 });
 
+// --- ENDPOINT PARA ESTUDIAR UN LIBRO ---
+app.post('/api/players/:owner_key/study_book', async (req, res) => {
+    const { owner_key } = req.params;
+    const { book_code } = req.body;
+
+    // (Aquí iría la lógica para verificar si ya ha leído el libro)
+    // (Luego, la lógica para otorgar el +1 stat o la habilidad)
+    // (Finalmente, añadir el book_code a la lista de libros leídos del jugador)
+
+    // Por ahora, solo simularemos el éxito
+    console.log(`Player ${owner_key} has studied the book ${book_code}.`);
+    res.status(200).json({ message: 'Knowledge absorbed.' });
+});
+
 // --- 4. START SERVER ---
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
