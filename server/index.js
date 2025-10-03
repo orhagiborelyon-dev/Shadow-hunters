@@ -251,6 +251,22 @@ app.post('/api/players/study_book', async (req, res) => {
     res.status(200).json({ message: 'Knowledge absorbed.' });
 });
 
+app.post('/api/rituals/divination', async (req, res) => {
+    const { admin_key, question } = req.body;
+
+    // (Aquí podrías añadir una verificación de admin_key)
+    
+    // Lo más importante: esta lógica notifica a los admins.
+    console.log("--- DIVINATION RITUAL ---");
+    console.log(`Player asked the Mortal Cup: "${question}"`);
+    console.log("-------------------------");
+    
+    // (Aquí podrías enviar una notificación a un canal de Discord o Slack para los admins)
+    
+    // Respondemos a SL para que el jugador sepa que funcionó.
+    res.status(200).json({ message: 'The vision has been requested.' });
+});
+
 // --- 4. START SERVER ---
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
