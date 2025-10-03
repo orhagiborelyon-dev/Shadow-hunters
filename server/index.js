@@ -236,16 +236,18 @@ app.post('/api/admin/grant_ability', async (req, res) => {
 });
 
 // --- ENDPOINT PARA ESTUDIAR UN LIBRO ---
-app.post('/api/players/:owner_key/study_book', async (req, res) => {
-    const { owner_key } = req.params;
-    const { book_code } = req.body;
+app.post('/api/players/study_book', async (req, res) => {
+    const { owner_key, book_code } = req.body;
+    console.log(`Received study request from ${owner_key} for book ${book_code}`);
 
-    // (Aquí iría la lógica para verificar si ya ha leído el libro)
-    // (Luego, la lógica para otorgar el +1 stat o la habilidad)
-    // (Finalmente, añadir el book_code a la lista de libros leídos del jugador)
+    if (!owner_key || !book_code) {
+        return res.status(400).json({ error: 'owner_key and book_code are required.' });
+    }
 
-    // Por ahora, solo simularemos el éxito
-    console.log(`Player ${owner_key} has studied the book ${book_code}.`);
+    // (Aquí irá la lógica real de dar el +1 STR, etc.)
+    
+    console.log(`Player ${owner_key} has studied the book ${book_code}. Granting reward (simulation).`);
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.status(200).json({ message: 'Knowledge absorbed.' });
 });
 
