@@ -267,6 +267,36 @@ app.post('/api/rituals/divination', async (req, res) => {
     res.status(200).json({ message: 'The vision has been requested.' });
 });
 
+// index.js (endpoint de UPDATE modificado)
+
+app.post('/api/players/profile/update', async (req, res) => {
+    // Añadimos todos los stats a la lista de variables que podemos recibir
+    const { owner_key, health, stamina, energy, xp, level, strength, agility, vitality, magic, intelligence, willpower, faith, luck } = req.body;
+
+    if (!owner_key) { /* ... (sin cambios) ... */ }
+
+    const fieldsToUpdate = [];
+    const values = [];
+    let queryIndex = 1;
+
+    // Añadimos un bloque 'if' para cada stat
+    if (health !== undefined) { fieldsToUpdate.push(`health = $${queryIndex++}`); values.push(health); }
+    if (stamina !== undefined) { fieldsToUpdate.push(`stamina = $${queryIndex++}`); values.push(stamina); }
+    if (energy !== undefined) { fieldsToUpdate.push(`energy = $${queryIndex++}`); values.push(energy); }
+    if (xp !== undefined) { fieldsToUpdate.push(`xp = $${queryIndex++}`); values.push(xp); }
+    if (level !== undefined) { fieldsToUpdate.push(`level = $${queryIndex++}`); values.push(level); }
+    if (strength !== undefined) { fieldsToUpdate.push(`strength = $${queryIndex++}`); values.push(strength); }
+    if (agility !== undefined) { fieldsToUpdate.push(`agility = $${queryIndex++}`); values.push(agility); }
+    if (vitality !== undefined) { fieldsToUpdate.push(`vitality = $${queryIndex++}`); values.push(vitality); }
+    if (magic !== undefined) { fieldsToUpdate.push(`magic = $${queryIndex++}`); values.push(magic); }
+    if (intelligence !== undefined) { fieldsToUpdate.push(`intelligence = $${queryIndex++}`); values.push(intelligence); }
+    if (willpower !== undefined) { fieldsToUpdate.push(`willpower = $${queryIndex++}`); values.push(willpower); }
+    if (faith !== undefined) { fieldsToUpdate.push(`faith = $${queryIndex++}`); values.push(faith); }
+    if (luck !== undefined) { fieldsToUpdate.push(`luck = $${queryIndex++}`); values.push(luck); }
+    
+    // ... (el resto del endpoint no cambia) ...
+});
+
 // --- 4. START SERVER ---
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
