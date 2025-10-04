@@ -352,6 +352,42 @@ app.post('/api/admin/set_clan_rank', async (req, res) => {
     }
 });
 
+// --- ADMIN ENDPOINT: CREATE PARABATAI BOND ---
+app.post('/api/admin/create_parabatai_bond', async (req, res) => {
+    const { admin_key, player1_key, player2_key } = req.body;
+    console.log(`Admin request to bond ${player1_key} and ${player2_key}`);
+
+    if (admin_key !== process.env.ADMIN_API_KEY) {
+        return res.status(403).json({ error: 'Forbidden: Invalid admin key.' });
+    }
+    if (!player1_key || !player2_key) {
+        return res.status(400).json({ error: 'player1_key and player2_key are required.' });
+    }
+    if (player1_key === player2_key) {
+        return res.status(400).json({ error: 'A player cannot be their own Parabatai.'});
+    }
+
+    // Usamos una transacción para asegurar que ambos jugadores se actualicen o ninguno lo haga.
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        // Actualizar jugador 1 para que apunte al jugador 2
+        await client.query('UPDATE players SET parabatai_key = $1::uuid WHERE owner_key = $2::uuid', [player2_key, player1_key]);
+        // Actualizar jugador 2 para que apunte al jugador 1
+        await client.query('UPDATE players SET parabatai_key = $1::uuid WHERE owner_key = $2::uuid', [player1_key, player2_key]);
+        await client.query('COMMIT');
+        
+        console.log(`SUCCESS: Parabatai bond created between ${player1_key} and ${player2_key}`);
+        res.status(200).json({ message: 'Parabatai bond successfully created.' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('CRITICAL ERROR creating Parabatai bond:', error);
+        res.status(500).json({ error: 'Internal server error.' });
+    } finally {
+        client.release();
+    }
+});
+
 // --- 4. START SERVER ---
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
