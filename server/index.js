@@ -297,6 +297,61 @@ app.post('/api/players/profile/update', async (req, res) => {
     // ... (el resto del endpoint no cambia) ...
 });
 
+// --- ADMIN ENDPOINT: INVITE TO CLAN ---
+app.post('/api/admin/invite_to_clan', async (req, res) => {
+    const { admin_key, target_key, clan_name } = req.body;
+
+    if (admin_key !== process.env.ADMIN_API_KEY) {
+        return res.status(403).json({ error: 'Forbidden: Invalid admin key.' });
+    }
+    if (!target_key || !clan_name) {
+        return res.status(400).json({ error: 'target_key and clan_name are required.' });
+    }
+
+    try {
+        // Usamos una subconsulta para obtener el ID del clan a partir de su nombre
+        const result = await pool.query(
+            `UPDATE players SET 
+                clan_id = (SELECT id FROM clans WHERE name = $1),
+                clan_rank = 'Neophyte'
+             WHERE owner_key = $2::uuid RETURNING *`,
+            [clan_name, target_key]
+        );
+
+        if (result.rows.length > 0) {
+            res.status(200).json({ message: `Player successfully joined clan ${clan_name}` });
+        } else {
+            res.status(404).json({ error: 'Player or Clan not found.' });
+        }
+    } catch (error) {
+        console.error('Error inviting to clan:', error);
+        res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
+// --- ADMIN ENDPOINT: SET CLAN RANK ---
+app.post('/api/admin/set_clan_rank', async (req, res) => {
+    const { admin_key, target_key, new_rank } = req.body;
+
+    if (admin_key !== process.env.ADMIN_API_KEY) { /* ... (verificación de admin) ... */ }
+    if (!target_key || !new_rank) { /* ... (verificación de datos) ... */ }
+
+    try {
+        const result = await pool.query(
+            'UPDATE players SET clan_rank = $1 WHERE owner_key = $2::uuid RETURNING *',
+            [new_rank, target_key]
+        );
+         if (result.rows.length > 0) {
+            res.status(200).json({ message: `Player rank set to ${new_rank}` });
+        } else {
+            res.status(404).json({ error: 'Player not found.' });
+        }
+    } catch (error) {
+        console.error('Error setting clan rank:', error);
+        res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
 // --- 4. START SERVER ---
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
