@@ -57,19 +57,30 @@ app.post('/api/players/register', async (req, res) => {
   }
 });
 
-// --- GET PLAYER PROFILE ENDPOINT ---
-app.get('/api/players/profile/:owner_key', async (req, res) => {
+// --- GET PLAYER ABILITIES ENDPOINT ---
+// Obtiene todas las habilidades que un jugador ha aprendido.
+app.get('/api/players/abilities/:owner_key', async (req, res) => {
     const { owner_key } = req.params;
+    console.log(`Fetching abilities for key: ${owner_key}`);
+
     try {
-        const result = await pool.query('SELECT * FROM players WHERE owner_key = $1::uuid', [owner_key]);
-        if (result.rows.length > 0) {
-            res.setHeader('Content-Type', 'application/json; charset=utf-8');
-            res.status(200).json(result.rows[0]);
-        } else {
-            res.status(404).json({ error: 'Player not found' });
-        }
+        const query = `
+            SELECT a.* FROM abilities a
+            JOIN player_abilities pa ON a.id = pa.ability_id
+            JOIN players p ON p.id = pa.player_id
+            WHERE p.owner_key = $1::uuid`;
+            
+        const result = await pool.query(query, [owner_key]);
+        
+        console.log(`Database query found ${result.rows.length} abilities for ${owner_key}.`);
+        
+        // No hay razón para que esto no devuelva todas las filas.
+        // Lo devolvemos directamente.
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.status(200).json(result.rows); 
+
     } catch (error) {
-        console.error('CRITICAL ERROR fetching profile:', error);
+        console.error('CRITICAL ERROR fetching abilities:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
