@@ -1,5 +1,5 @@
 // index.js - Shadowhunters API Server
-// Version 4.0 - Stable, Simplified, and Fully Functional.
+// Version 5.0 - Stable and Complete. Corrected Abilities Endpoint.
 
 // --- 1. SETUP ---
 require('dotenv').config();
@@ -25,7 +25,6 @@ const pool = new Pool({
 // ======== A. PUBLIC & PLAYER ENDPOINTS ========
 
 app.get('/api/ping', (req, res) => {
-  console.log("PING received.");
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.status(200).json({ status: 'alive' });
 });
@@ -63,14 +62,26 @@ app.get('/api/players/profile/:owner_key', async (req, res) => {
     }
 });
 
+// --- GET PLAYER ABILITIES ENDPOINT (CORRECTED FORMAT) ---
 app.get('/api/players/abilities/:owner_key', async (req, res) => {
     const { owner_key } = req.params;
     try {
         const result = await pool.query(
-            `SELECT a.* FROM abilities a JOIN player_abilities pa ON a.id = pa.ability_id JOIN players p ON p.id = pa.player_id WHERE p.owner_key = $1::uuid`, [owner_key]
+            `SELECT a.* FROM abilities a
+             JOIN player_abilities pa ON a.id = pa.ability_id
+             JOIN players p ON p.id = pa.player_id
+             WHERE p.owner_key = $1::uuid`,
+            [owner_key]
         );
+        
+        // Transform the array of objects into a single object
+        const abilitiesObject = {};
+        result.rows.forEach(ability => {
+            abilitiesObject[ability.ability_code] = ability;
+        });
+        
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
-        res.status(200).json(result.rows);
+        res.status(200).json(abilitiesObject); // Return an object, not an array
     } catch (error) {
         console.error('GET ABILITIES ERROR:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -104,6 +115,7 @@ app.post('/api/players/profile/update', async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
 
 // ======== B. ADMIN ENDPOINTS ========
 
