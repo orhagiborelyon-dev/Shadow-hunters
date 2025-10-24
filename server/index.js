@@ -1,5 +1,5 @@
 // index.js - Shadowhunters API Server
-// Version 5.0 - Stable and Complete. Corrected Abilities Endpoint.
+// Version 5.1 - Integrated Parabatai Bond Endpoint.
 
 // --- 1. SETUP ---
 require('dotenv').config();
@@ -10,6 +10,7 @@ const app = express();
 app.use(express.json());
 
 // --- 2. DATABASE CONNECTION ---
+// Asegúrate de que DATABASE_URL y ADMIN_API_KEY estén configuradas en tu .env
 if (!process.env.DATABASE_URL) {
     console.error("FATAL ERROR: DATABASE_URL environment variable is not set.");
 } else {
@@ -49,7 +50,8 @@ app.post('/api/players/register', async (req, res) => {
 app.get('/api/players/profile/:owner_key', async (req, res) => {
     const { owner_key } = req.params;
     try {
-        const result = await pool.query('SELECT * FROM players WHERE owner_key = $1::uuid', [owner_key]);
+        // Incluir la columna parabatai_key
+        const result = await pool.query('SELECT owner_key, display_name, language, health, stamina, energy, xp, level, race, parabatai_key FROM players WHERE owner_key = $1::uuid', [owner_key]);
         if (result.rows.length > 0) {
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
             res.status(200).json(result.rows[0]);
@@ -62,7 +64,6 @@ app.get('/api/players/profile/:owner_key', async (req, res) => {
     }
 });
 
-// --- GET PLAYER ABILITIES ENDPOINT (CORRECTED FORMAT) ---
 app.get('/api/players/abilities/:owner_key', async (req, res) => {
     const { owner_key } = req.params;
     try {
@@ -74,7 +75,6 @@ app.get('/api/players/abilities/:owner_key', async (req, res) => {
             [owner_key]
         );
         
-        // Transform the array of objects into a single object
         const abilitiesObject = {};
         result.rows.forEach(ability => {
             abilitiesObject[ability.ability_code] = ability;
@@ -154,6 +154,56 @@ app.post('/api/admin/grant_ability', async (req, res) => {
         if (error.code === '23505') { return res.status(409).json({ error: 'Player already has this ability.' }); }
         console.error('GRANT ABILITY ERROR:', error);
         res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
+// --- ENDPOINT NUEVO: CREATE PARABATAI BOND ---
+app.post('/api/admin/create_parabatai_bond', async (req, res) => {
+    const { admin_key, key1, key2 } = req.body;
+    
+    if (admin_key !== process.env.ADMIN_API_KEY) {
+        return res.status(403).json({ error: 'Forbidden: Invalid admin key.' });
+    }
+    if (!key1 || !key2 || key1 === key2) { 
+        return res.status(400).json({ error: 'Valid keys are required, and they must be different.' }); 
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        
+        // 1. Verificar que ninguno ya tenga un Parabatai
+        const checkResult = await client.query(
+            `SELECT owner_key, parabatai_key FROM players WHERE owner_key = $1::uuid OR owner_key = $2::uuid`, 
+            [key1, key2]
+        );
+
+        for (const row of checkResult.rows) {
+            if (row.parabatai_key) {
+                await client.query('ROLLBACK');
+                return res.status(409).json({ error: `Player ${row.owner_key} already has a Parabatai.` });
+            }
+        }
+        
+        // 2. Establecer el vínculo cruzado
+        await client.query(
+            `UPDATE players SET parabatai_key = $1::uuid WHERE owner_key = $2::uuid`, 
+            [key2, key1]
+        );
+        await client.query(
+            `UPDATE players SET parabatai_key = $1::uuid WHERE owner_key = $2::uuid`, 
+            [key1, key2]
+        );
+        
+        await client.query('COMMIT');
+        res.status(200).json({ message: `Parabatai bond established between ${key1} and ${key2}.` });
+        
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('CREATE PARABATAI BOND ERROR:', error);
+        res.status(500).json({ error: 'Internal server error during bond creation.' });
+    } finally {
+        client.release();
     }
 });
 
