@@ -34,7 +34,20 @@ app.post("/api/register", async (req, res) => {
       [uuid, name, race]
     );
 
-    res.json({ status: "ok", message: `Jugador ${name} registrado como ${race}` });
+    res.send(
+  "🌒 Successful Registration 🌒\n" +
+  `You have awakened into the Shadow World as a ${race}. Go now, and find your path...\n\n` +
+
+  "🌑 Registro exitoso 🌑\n" +
+  `Has despertado al mundo de las sombras como ${race}. Ve y encuentra tu camino...\n\n` +
+
+  "🌘 Erfolgreiche Registrierung 🌘\n" +
+  `Du bist in die Schattenwelt erwacht als ${race}. Gehe nun und finde deinen Weg...\n\n` +
+
+  "🌗 Inscription réussie 🌗\n" +
+  `Tu t’es éveillé dans le Monde des Ombres en tant que ${race}. Va maintenant, et trouve ta voie...`
+);
+
   } catch (err) {
     res.status(500).json({ status: "error", error: err.message });
   }
