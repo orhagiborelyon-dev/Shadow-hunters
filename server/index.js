@@ -232,23 +232,49 @@ app.post("/api/world/exposure", async (req, res) => {
 // 🔹 7. Artefactos Divinos
 // ==========================================
 
-// 🩸 Copa Mortal
+// ==========================================
+// 🔹 8. Artefacto: La Copa Mortal
+// ==========================================
 app.post("/api/mortalcup/use", async (req, res) => {
   try {
     const { uuid, name } = req.body;
 
+    // Verificar si el jugador existe
     const player = await pool.query("SELECT * FROM players WHERE uuid = $1", [uuid]);
-    if (player.rows.length === 0) return res.status(404).json({ error: "Jugador no encontrado" });
+    if (player.rows.length === 0) {
+      return res.json({
+        outcome: "Indeterminado",
+        message: `⚠️ ${name}, tu alma no figura en los registros del Cónclave.`
+      });
+    }
 
-    // La copa eleva al jugador
-    await pool.query("UPDATE players SET race = 'Nephilim', honor = honor + 10 WHERE uuid = $1", [
-      uuid,
-    ]);
+    const data = player.rows[0];
 
-    res.json({
-      status: "ok",
-      message: `✨ ${name} ha bebido de la Copa Mortal y renacido como Nephilim.`,
-    });
+    // Si ya es Nephilim, la Copa no debe repetir ascensión
+    if (data.race && data.race.toLowerCase() === "nephilim") {
+      return res.json({
+        outcome: "Nephilim",
+        message: `🌟 ${name}, la Copa ya te ha bendecido. No puede otorgarte más poder.`
+      });
+    }
+
+    // Si no es Nephilim, decidir si acepta o rechaza
+    const fate = Math.random(); // 0.0 – 1.0
+    if (fate < 0.7) {
+      // Aceptado como Nephilim
+      await pool.query("UPDATE players SET race = 'Nephilim', level = level + 1 WHERE uuid = $1", [uuid]);
+      return res.json({
+        outcome: "Nephilim",
+        message: `✨ ${name}, la Copa Mortal acepta tu alma. Eres ahora Nephilim.`
+      });
+    } else {
+      // Rechazado
+      await pool.query("DELETE FROM players WHERE uuid = $1", [uuid]);
+      return res.json({
+        outcome: "Muerte Espiritual",
+        message: `💀 ${name}, la Copa rechaza tu esencia. Tu alma ha sido destruida.`
+      });
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
