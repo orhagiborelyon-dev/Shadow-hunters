@@ -35,19 +35,15 @@ app.post("/api/register", async (req, res) => {
     );
 
     res.send(
-  "🌒 Successful Registration 🌒\n" +
-  `You have awakened into the Shadow World as a ${race}. Go now, and find your path...\n\n` +
-
-  "🌑 Registro exitoso 🌑\n" +
-  `Has despertado al mundo de las sombras como ${race}. Ve y encuentra tu camino...\n\n` +
-
-  "🌘 Erfolgreiche Registrierung 🌘\n" +
-  `Du bist in die Schattenwelt erwacht als ${race}. Gehe nun und finde deinen Weg...\n\n` +
-
-  "🌗 Inscription réussie 🌗\n" +
-  `Tu t’es éveillé dans le Monde des Ombres en tant que ${race}. Va maintenant, et trouve ta voie...`
-);
-
+      "🌒 Successful Registration 🌒\n" +
+        `You have awakened into the Shadow World as a ${race}. Go now, and find your path...\n\n` +
+        "🌑 Registro exitoso 🌑\n" +
+        `Has despertado al mundo de las sombras como ${race}. Ve y encuentra tu camino...\n\n` +
+        "🌘 Erfolgreiche Registrierung 🌘\n" +
+        `Du bist in die Schattenwelt erwacht als ${race}. Gehe nun und finde deinen Weg...\n\n` +
+        "🌗 Inscription réussie 🌗\n" +
+        `Tu t’es éveillé dans le Monde des Ombres en tant que ${race}. Va maintenant, et trouve ta voie...`
+    );
   } catch (err) {
     res.status(500).json({ status: "error", error: err.message });
   }
@@ -73,10 +69,11 @@ app.post("/api/update", async (req, res) => {
   try {
     const { uuid, xp, level } = req.body;
 
-    await pool.query(
-      "UPDATE players SET xp = $1, level = $2 WHERE uuid = $3",
-      [xp, level, uuid]
-    );
+    await pool.query("UPDATE players SET xp = $1, level = $2 WHERE uuid = $3", [
+      xp,
+      level,
+      uuid,
+    ]);
 
     res.json({ status: "ok", message: "Progreso actualizado" });
   } catch (err) {
@@ -84,7 +81,7 @@ app.post("/api/update", async (req, res) => {
   }
 });
 
-// Borrar todos los registros (limpieza total)
+// Borrar todos los registros
 app.delete("/api/reset", async (req, res) => {
   try {
     await pool.query("DELETE FROM players");
@@ -167,10 +164,11 @@ app.post("/api/leyes", async (req, res) => {
 app.post("/api/leyes/voto", async (req, res) => {
   try {
     const { ley_id, jugador, voto } = req.body;
-    await pool.query(
-      "INSERT INTO votos (ley_id, jugador, voto) VALUES ($1, $2, $3)",
-      [ley_id, jugador, voto]
-    );
+    await pool.query("INSERT INTO votos (ley_id, jugador, voto) VALUES ($1, $2, $3)", [
+      ley_id,
+      jugador,
+      voto,
+    ]);
 
     res.json({ status: "ok", message: "Voto registrado" });
   } catch (err) {
@@ -231,7 +229,80 @@ app.post("/api/world/exposure", async (req, res) => {
 });
 
 // ==========================================
-// 🔹 7. Prueba del servidor
+// 🔹 7. Artefactos Divinos
+// ==========================================
+
+// 🩸 Copa Mortal
+app.post("/api/mortalcup/use", async (req, res) => {
+  try {
+    const { uuid, name } = req.body;
+
+    const player = await pool.query("SELECT * FROM players WHERE uuid = $1", [uuid]);
+    if (player.rows.length === 0) return res.status(404).json({ error: "Jugador no encontrado" });
+
+    // La copa eleva al jugador
+    await pool.query("UPDATE players SET race = 'Nephilim', honor = honor + 10 WHERE uuid = $1", [
+      uuid,
+    ]);
+
+    res.json({
+      status: "ok",
+      message: `✨ ${name} ha bebido de la Copa Mortal y renacido como Nephilim.`,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 💧 Lago Lynn
+app.post("/api/lakelynn/use", async (req, res) => {
+  try {
+    const { uuid, name } = req.body;
+
+    const player = await pool.query("SELECT * FROM players WHERE uuid = $1", [uuid]);
+    if (player.rows.length === 0) return res.status(404).json({ error: "Jugador no encontrado" });
+
+    // El lago purifica y cura
+    await pool.query("UPDATE players SET xp = xp + 5, fear = GREATEST(fear - 3, 0) WHERE uuid = $1", [
+      uuid,
+    ]);
+
+    res.json({
+      status: "ok",
+      message: `🌊 ${name} se ha bañado en el Lago Lynn y su espíritu ha sido purificado.`,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ⚔️ Espada Mortal
+app.post("/api/sword/claim", async (req, res) => {
+  try {
+    const { uuid, name } = req.body;
+
+    const owner = await pool.query("SELECT * FROM artifacts WHERE name = 'Espada Mortal'");
+    if (owner.rows.length > 0 && owner.rows[0].owner_uuid)
+      return res.status(400).json({ error: "La Espada Mortal ya pertenece a otro portador." });
+
+    await pool.query(
+      `INSERT INTO artifacts (name, owner_uuid, fecha_claim)
+       VALUES ('Espada Mortal', $1, NOW())
+       ON CONFLICT (name) DO UPDATE SET owner_uuid = $1, fecha_claim = NOW()`,
+      [uuid]
+    );
+
+    res.json({
+      status: "ok",
+      message: `⚔️ ${name} ha reclamado la Espada Mortal. Su destino ha cambiado.`,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// 🔹 8. Prueba del servidor
 // ==========================================
 app.get("/", (req, res) => {
   res.send("🌘 Shadow Realms API v5.0.2 — Servidor activo y estable.");
@@ -241,6 +312,4 @@ app.get("/", (req, res) => {
 // 🚀 Iniciar Servidor
 // ==========================================
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () =>
-  console.log(`🌑 Shadow Realms API escuchando en puerto ${PORT}`)
-);
+app.listen(PORT, () => console.log(`🌑 Shadow Realms API escuchando en puerto ${PORT}`));
