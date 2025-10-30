@@ -1,11 +1,10 @@
 //---------------------------------------------------------
-// Shadow Realms API v2.0
-// Node.js + Express backend for all LSL HUD modules
+// Shadow Realms API v2.0 (CommonJS compatible)
 //---------------------------------------------------------
-import express from "express";
-import cors from "cors";
-import bodyParser from "body-parser";
-import fs from "fs-extra";
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const fs = require("fs-extra");
 
 const app = express();
 app.use(cors());
@@ -35,7 +34,7 @@ async function initDB() {
     await fs.writeJson(DB_FILE, baseData, { spaces: 2 });
   }
 }
-await initDB();
+initDB();
 
 //---------------------------------------------------------
 // HELPER FUNCTIONS
